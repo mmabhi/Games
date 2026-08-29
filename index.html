@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Decode It — Multiplayer Emoji Guessing Party Game</title>
+  <meta name="description" content="A real-time multiplayer emoji party game. Decode movies and songs from emojis with your friends on mobile or desktop." />
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- External Libraries (CDN with zero build step) -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <div id="app-container">
+    <!-- Header / Navbar -->
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-icon">🧩</span>
+        <span class="brand-title">DECODE <span class="brand-highlight">IT</span></span>
+      </div>
+      <div class="header-actions">
+        <button id="btn-header-leave" class="btn btn-outline btn-sm hidden" title="Leave Current Room">🚪 Leave</button>
+        <button id="btn-open-rules" class="icon-btn" title="How to Play">❓</button>
+        <button id="btn-mute" class="icon-btn" title="Toggle Sound">🔊</button>
+      </div>
+    </header>
+
+    <!-- MAIN SCREENS CONTAINER -->
+    <main class="main-content">
+
+      <!-- 1. HOME SCREEN -->
+      <section id="screen-home" class="screen">
+        <div class="hero-box">
+          <div class="hero-badge">⚡ Real-time Multiplayer Party Game</div>
+          <h1 class="hero-title">Decode Movies & Songs from Emojis!</h1>
+          <p class="hero-desc">Create a game room, share with friends via QR code or link, and race to decode the emoji clues first!</p>
+        </div>
+
+        <div class="card-grid">
+          <!-- Join Room Card -->
+          <div class="card primary-card">
+            <h2 class="card-title">Join a Game</h2>
+            <div class="form-group">
+              <label>Choose Your Avatar</label>
+              <div id="join-avatar-picker" class="avatar-picker-grid"></div>
+            </div>
+            <div class="form-group">
+              <label for="join-name">Your Name</label>
+              <input type="text" id="join-name" class="input-field" placeholder="e.g. Alex" maxlength="15" />
+            </div>
+            <div class="form-group">
+              <label for="join-code">4-Letter Room Code</label>
+              <input type="text" id="join-code" class="input-field room-code-input" placeholder="e.g. WXYZ" maxlength="4" />
+            </div>
+            <button id="btn-quick-join" class="btn btn-primary btn-block">Join Game 🚀</button>
+          </div>
+
+          <!-- Host Room Card -->
+          <div class="card secondary-card">
+            <h2 class="card-title">Host a New Game</h2>
+            <p class="card-subtitle">Set up custom rounds, choose categories, or add your own secret emoji clues.</p>
+            <div class="feature-highlights">
+              <div class="feature-item">🎬 Movies & 🎵 Song categories</div>
+              <div class="feature-item">📱 Instant QR Code join for mobile</div>
+              <div class="feature-item">🏆 Speed & order-based scoring</div>
+            </div>
+            <button id="btn-open-host" class="btn btn-secondary btn-block">Host Game Settings ⚙️</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. HOST CONFIGURATION SCREEN -->
+      <section id="screen-host-config" class="screen hidden">
+        <div class="screen-header">
+          <button id="btn-back-home" class="btn-text">← Back</button>
+          <h2 id="host-config-title">Configure Game Room</h2>
+          <button type="button" id="btn-host-security-settings" class="btn-icon" title="Host Security & Passcode">🔐</button>
+        </div>
+
+        <div class="card config-card">
+          <!-- Host Profile -->
+          <div class="form-group">
+            <label>Host Avatar</label>
+            <div id="host-avatar-picker" class="avatar-picker-grid"></div>
+          </div>
+          <div class="form-group">
+            <label for="host-name">Host Name</label>
+            <input type="text" id="host-name" class="input-field" placeholder="Host" value="Host" maxlength="15" />
+          </div>
+
+          <!-- Category Selection -->
+          <div class="form-group">
+            <label>Select Category</label>
+            <div class="chip-group">
+              <button type="button" class="chip chip-category active" data-category="mix">🔀 Mix of All</button>
+              <button type="button" class="chip chip-category" data-category="movies">🎬 Bollywood Movies (2000+)</button>
+              <button type="button" class="chip chip-category" data-category="songs">🎵 Bollywood Songs</button>
+              <button type="button" class="chip chip-category" data-category="translations">🇬🇧➡️🇮🇳 Bollywood in English</button>
+              <button type="button" class="chip chip-category" data-category="drawing">🎨 Draw & Guess</button>
+              <button type="button" class="chip chip-category" data-category="charades">🎭 Live Video Dumb Charades</button>
+              <button type="button" class="chip chip-category" data-category="hangout">📹 Live Video Hangout (Call Only • No Game)</button>
+            </div>
+          </div>
+
+          <div id="game-config-options-box">
+            <!-- Time and Rounds -->
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="config-timer">Seconds per Round</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <input type="number" id="config-timer" class="input-field" value="60" min="5" max="600" step="5" placeholder="e.g. 60, 90, 120" style="font-weight: 800; font-size: 1.1rem;" />
+                  <span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 700;">sec</span>
+                </div>
+                <div class="chip-group" style="margin-top: 6px; gap: 4px;">
+                  <button type="button" class="chip chip-timer-preset" data-sec="30">30s</button>
+                  <button type="button" class="chip chip-timer-preset active" data-sec="60">60s</button>
+                  <button type="button" class="chip chip-timer-preset" data-sec="90">90s</button>
+                  <button type="button" class="chip chip-timer-preset" data-sec="120">120s</button>
+                  <button type="button" class="chip chip-timer-preset" data-sec="180">180s</button>
+                </div>
+              </div>
+              <div class="form-group flex-1">
+                <label for="config-rounds">Total Rounds</label>
+                <select id="config-rounds" class="input-field select-field" style="margin-top: 2px;">
+                  <option value="3">3 Rounds (Quick match)</option>
+                  <option value="5" selected>5 Rounds (Recommended)</option>
+                  <option value="10">10 Rounds (Full game)</option>
+                  <option value="15">15 Rounds (Marathon)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Deck Source -->
+            <div class="form-group">
+              <label>Question Source</label>
+              <div class="chip-group">
+                <button type="button" class="chip chip-deck-source active" data-source="all">✨ Built-in + Custom</button>
+                <button type="button" class="chip chip-deck-source" data-source="builtin">🎲 Built-in Library Only</button>
+                <button type="button" class="chip chip-deck-source" data-source="custom">✍️ Custom Deck Only</button>
+              </div>
+            </div>
+
+            <!-- Text Line Hint Setting -->
+            <div class="form-group">
+              <label>Show Text Line Clue?</label>
+              <div class="chip-group">
+                <button type="button" class="chip chip-text-hints active" data-texthints="yes">💡 Yes (Show text clue)</button>
+                <button type="button" class="chip chip-text-hints" data-hints="no" data-texthints="no">🚫 No (Pure decoding)</button>
+              </div>
+              <small class="form-help">Word pattern blanks (<code>_ _ _  _ _</code>) & smart dynamic letter reveals always stay active!</small>
+            </div>
+
+            <div class="deck-actions-bar">
+              <button type="button" id="btn-open-deck-manager" class="btn btn-outline btn-sm">
+                🛠️ Manage / Add Custom Emoji Puzzles
+              </button>
+            </div>
+          </div>
+
+          <button id="btn-create-room" class="btn btn-primary btn-block btn-lg">Create Room 🚀</button>
+        </div>
+      </section>
+
+      <!-- 3. LOBBY SCREEN -->
+      <section id="screen-lobby" class="screen hidden">
+        <div class="lobby-grid">
+          <!-- Room Join Info Box -->
+          <div class="card lobby-info-card">
+            <div class="room-code-badge">
+              <span class="label">ROOM CODE</span>
+              <span id="lobby-room-code" class="code">----</span>
+            </div>
+
+            <div class="qr-box">
+              <div id="lobby-qr-code"></div>
+              <p class="qr-hint">Scan with phone camera to join</p>
+            </div>
+
+            <div class="share-url-box">
+              <input type="text" id="lobby-share-url" class="input-field" readonly />
+              <button id="btn-copy-link" class="btn btn-secondary btn-sm">Copy Link 📋</button>
+            </div>
+          </div>
+
+          <!-- Connected Players Box -->
+          <div class="card lobby-players-card">
+            <div class="lobby-players-header">
+              <h3>Players Joined</h3>
+              <span id="lobby-player-count" class="badge">0 Players</span>
+            </div>
+
+            <div id="lobby-player-list" class="player-pills-container">
+              <!-- Dynamically populated -->
+            </div>
+
+            <div class="lobby-footer">
+              <button id="btn-start-game" class="btn btn-primary btn-block btn-lg">Start Game Now! 🎮</button>
+              <p id="lobby-waiting-text" class="waiting-text hidden">Waiting for host to start the game...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. ACTIVE GAME SCREEN -->
+      <section id="screen-game" class="screen hidden">
+        <!-- Live Group Video Call Strip (Used during game modes) -->
+        <div id="video-call-section" class="video-call-section">
+          <div class="video-call-header">
+            <div class="call-header-info">
+              <span class="call-live-dot"></span>
+              <span class="call-title">Live Call</span>
+              <span id="call-player-count-badge" class="call-count-badge">1</span>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button type="button" id="btn-toggle-video-view" class="btn-view-toggle" title="Switch between Focus Actor only and All Videos">
+                🎭 Focus Actor
+              </button>
+              <button type="button" id="btn-toggle-video-collapse" class="btn-icon-sm" title="Minimize / Expand Video View">
+                <span id="collapse-icon">▲</span>
+              </button>
+            </div>
+          </div>
+          <div id="video-call-grid" class="video-call-grid">
+            <!-- Dynamically populated video tiles -->
+          </div>
+        </div>
+
+        <!-- Dedicated Full-Screen Group Video Hangout Lounge (Call Only • No Game) -->
+        <div id="hangout-call-stage" class="hangout-call-stage hidden">
+          <div class="hangout-top-bar">
+            <div class="hangout-room-pill">
+              <span class="call-live-dot"></span>
+              <span class="hangout-title">Group Video Hangout</span>
+              <span id="hangout-room-code-badge" class="hangout-code-badge">----</span>
+            </div>
+            <div class="hangout-meta-pills">
+              <span id="hangout-call-timer" class="hangout-timer-pill">⏱️ 00:00</span>
+              <span id="hangout-count-pill" class="hangout-count-pill">👥 1</span>
+            </div>
+          </div>
+
+          <div id="hangout-video-gallery" class="hangout-video-gallery">
+            <!-- Dynamically populated video tiles for full hangout mode -->
+          </div>
+
+          <!-- Floating Emoji Reaction Bar -->
+          <div class="hangout-reaction-bar">
+            <button type="button" class="btn-reaction" data-emoji="❤️" title="Heart">❤️</button>
+            <button type="button" class="btn-reaction" data-emoji="😂" title="Laugh">😂</button>
+            <button type="button" class="btn-reaction" data-emoji="🎉" title="Party">🎉</button>
+            <button type="button" class="btn-reaction" data-emoji="🔥" title="Fire">🔥</button>
+            <button type="button" class="btn-reaction" data-emoji="👏" title="Clap">👏</button>
+            <button type="button" class="btn-reaction" data-emoji="🥂" title="Cheers">🥂</button>
+            <button type="button" id="btn-toggle-hangout-chat" class="btn-hangout-chat-toggle" title="Toggle Live Chat">💬 Chat</button>
+          </div>
+
+          <!-- Bottom Room Info & Invite Bar (Docked at bottom) -->
+          <div class="hangout-bottom-bar">
+            <button type="button" id="btn-hangout-copy-link" class="btn btn-secondary btn-xs">📋 Copy Invite Link</button>
+            <button type="button" id="btn-hangout-toggle-qr" class="btn btn-outline btn-xs">📱 Show QR Code</button>
+          </div>
+
+          <!-- Hangout QR Modal (Popup) -->
+          <div id="hangout-qr-modal" class="hangout-qr-modal hidden">
+            <div class="hangout-qr-content">
+              <button type="button" id="btn-close-hangout-qr" class="btn-icon-sm close-qr">✕</button>
+              <h4>Scan to Join Call</h4>
+              <div id="hangout-qr-container"></div>
+              <p class="qr-hint">Scan with camera on another phone</p>
+            </div>
+          </div>
+
+          <!-- Slide-out / Floating Live Chat Panel for Hangout -->
+          <div id="hangout-chat-drawer" class="hangout-chat-drawer hidden">
+            <div class="chat-drawer-header">
+              <span>💬 Live Group Chat</span>
+              <button type="button" id="btn-close-hangout-chat" class="btn-icon-sm">✕</button>
+            </div>
+            <div id="hangout-chat-messages" class="hangout-chat-messages">
+              <div class="chat-system-msg">Welcome to your private hangout call! 👋</div>
+            </div>
+            <form id="hangout-chat-form" class="hangout-chat-form">
+              <input type="text" id="hangout-chat-input" placeholder="Type a message..." maxlength="100" autocomplete="off" />
+              <button type="submit" class="btn-chat-send">Send</button>
+            </form>
+          </div>
+
+          <!-- Floating animated reactions canvas -->
+          <div id="floating-reactions-canvas" class="floating-reactions-canvas"></div>
+        </div>
+
+        <!-- Normal Game Elements (Hidden when in pure Hangout Lounge mode) -->
+        <div id="normal-game-elements">
+          <!-- Game Top Bar -->
+          <div class="game-top-bar">
+            <div class="game-badges">
+              <span id="game-round-badge" class="badge badge-indigo">Round 1 / 5</span>
+              <span id="game-category-badge" class="badge badge-category">🎬 Movie</span>
+            </div>
+
+            <!-- Circular Timer -->
+            <div class="timer-widget">
+              <svg class="timer-svg" viewBox="0 0 100 100">
+                <circle class="timer-circle-bg" cx="50" cy="50" r="42" />
+                <circle id="timer-circle-progress" class="timer-circle-progress" cx="50" cy="50" r="42" />
+              </svg>
+              <div class="timer-text">
+                <span id="timer-seconds">30</span>
+                <span class="timer-unit">s</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="game-main-layout">
+            <!-- Central Puzzle Area -->
+            <div class="game-puzzle-card">
+              <!-- Large Emoji Display (for Emoji Guessing modes) -->
+              <div id="emoji-stage-box" class="emoji-stage">
+                <div id="game-emojis" class="emoji-display">🦁👑</div>
+              </div>
+
+              <!-- Drawing & Video Charades Stage (for Draw & Guess / Enact mode) -->
+              <div id="game-drawing-stage" class="drawing-stage hidden">
+                <div id="drawer-secret-banner" class="drawer-secret-banner hidden">
+                  <div class="banner-info">
+                    <span class="banner-title">🎨 You are presenting:</span>
+                    <span id="drawer-secret-word" class="drawer-secret-word">3 Idiots</span>
+                  </div>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" id="btn-toggle-camera" class="btn btn-camera-toggle">
+                      📹 Enact on Camera 🎭
+                    </button>
+                    <button type="button" id="btn-trigger-audio-hint" class="btn btn-audio-hint">
+                      🎵 Play Song Tune Hint <span class="penalty-tag">(-30 pts)</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div id="guesser-drawer-banner" class="guesser-drawer-banner hidden">
+                  <span id="guesser-drawer-text">🎨 <strong>Player</strong> is drawing...</span>
+                </div>
+
+                <!-- Live Video Charades Stage -->
+                <div id="charades-video-container" class="charades-video-container hidden">
+                  <div class="video-live-badge">🔴 LIVE ENACTING</div>
+                  <video id="charades-video-feed" autoplay playsinline muted></video>
+                  <div id="video-actor-overlay" class="video-actor-overlay">
+                    <span id="video-actor-label">🎭 <strong>Actor</strong> is miming the movie!</span>
+                    <button type="button" id="btn-flip-camera" class="btn btn-sm btn-secondary hidden" title="Flip Camera">
+                      🔄 Flip Camera
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Canvas Container -->
+                <div id="canvas-wrapper" class="canvas-container">
+                  <canvas id="paint-canvas"></canvas>
+                </div>
+
+                <!-- Drawing Tools Toolbar (Only for Drawer) -->
+                <div id="drawing-toolbar" class="drawing-toolbar hidden">
+                  <div class="palette-colors">
+                    <button type="button" class="color-swatch active" style="background:#ffffff" data-color="#ffffff"></button>
+                    <button type="button" class="color-swatch" style="background:#ef4444" data-color="#ef4444"></button>
+                    <button type="button" class="color-swatch" style="background:#3b82f6" data-color="#3b82f6"></button>
+                    <button type="button" class="color-swatch" style="background:#10b981" data-color="#10b981"></button>
+                    <button type="button" class="color-swatch" style="background:#f59e0b" data-color="#f59e0b"></button>
+                    <button type="button" class="color-swatch" style="background:#ec4899" data-color="#ec4899"></button>
+                    <button type="button" class="color-swatch" style="background:#8b5cf6" data-color="#8b5cf6"></button>
+                    <button type="button" class="color-swatch" style="background:#854d0e" data-color="#854d0e"></button>
+                    <button type="button" class="color-swatch" style="background:#0f172a" data-color="#0f172a"></button>
+                  </div>
+
+                  <div class="toolbar-tools">
+                    <button type="button" id="btn-tool-brush" class="btn-tool active" title="Brush">🖌️</button>
+                    <button type="button" id="btn-tool-eraser" class="btn-tool" title="Eraser">🧹</button>
+                    <button type="button" id="btn-tool-undo" class="btn-tool" title="Undo">↩️</button>
+                    <button type="button" id="btn-tool-clear" class="btn-tool" title="Clear Canvas">🗑️</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- English Translation Clue Box if applicable -->
+              <div id="game-translation-box" class="translation-box hidden">
+                <span class="translation-badge">🇬🇧 Literal English Translation:</span>
+                <div id="game-translation-text" class="translation-text">"My Shoes Are Japanese"</div>
+              </div>
+
+              <!-- Clue Hint if available -->
+              <div id="game-clue-hint" class="clue-hint"></div>
+
+              <!-- Letter Blanks e.g. _ _ _   _ _ -->
+              <div class="hint-section">
+                <div class="hint-label">Word Pattern Hint:</div>
+                <div id="game-hint-blanks" class="hint-blanks-container">
+                  <!-- Generates _ _ _   _ _ -->
+                </div>
+              </div>
+
+              <!-- Guess Input Form (Visible for Guessers, Hidden for Drawer) -->
+              <form id="guess-form" class="guess-input-form" autocomplete="off">
+                <input
+                  type="text"
+                  id="guess-input"
+                  class="input-field guess-input"
+                  placeholder="Type your guess here..."
+                  autocapitalize="off"
+                  spellcheck="false"
+                  autocomplete="off"
+                />
+                <button type="submit" id="btn-submit-guess" class="btn btn-primary btn-guess">Guess 🎯</button>
+              </form>
+              <div id="guess-feedback" class="guess-feedback"></div>
+            </div>
+
+            <!-- Live Activity Feed & Scoreboard Drawer -->
+            <div class="game-side-panel">
+              <div class="side-card">
+                <h4 class="side-title">Live Scoreboard</h4>
+                <div id="live-scoreboard-list" class="score-list"></div>
+              </div>
+
+              <div class="side-card">
+                <h4 class="side-title">Guesses & Activity</h4>
+                <div id="live-guess-feed" class="guess-feed"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. ROUND RESULT SCREEN -->
+      <section id="screen-round-result" class="screen hidden">
+        <div class="card result-card">
+          <h2 id="result-round-title">Round Summary</h2>
+
+          <div class="answer-reveal-box">
+            <div id="result-answer-emojis" class="reveal-emojis">🦁👑</div>
+            <div class="reveal-label">The correct answer was:</div>
+            <div id="result-answer-text" class="reveal-answer">The Lion King</div>
+          </div>
+
+          <div class="round-standings-section">
+            <h3>Leaderboard</h3>
+            <div id="result-leaderboard" class="result-leaderboard-list"></div>
+          </div>
+
+          <div class="result-actions">
+            <button id="btn-next-round" class="btn btn-primary btn-lg">Next Round ➡️</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 6. FINAL PODIUM / GAME OVER SCREEN -->
+      <section id="screen-game-over" class="screen hidden">
+        <div class="card game-over-card">
+          <div class="trophy-header">🏆</div>
+          <h1 class="game-over-title">Game Champions!</h1>
+
+          <div id="podium-container" class="podium-layout">
+            <!-- 2nd, 1st, 3rd podium columns -->
+          </div>
+
+          <div class="final-scores-box">
+            <h3>Final Standings</h3>
+            <div id="final-leaderboard" class="final-score-list"></div>
+          </div>
+
+          <!-- Game Over Actions: Host -->
+          <div id="host-game-over-actions" class="game-over-actions">
+            <button id="btn-reconfigure-room" class="btn btn-primary btn-lg">⚙️ Change Category & Settings</button>
+            <button id="btn-quick-play-again" class="btn btn-secondary btn-lg">🔄 Quick Play Again</button>
+            <button id="btn-host-exit" class="btn btn-outline btn-lg">🏠 Exit to Home</button>
+          </div>
+
+          <!-- Game Over Actions: Player -->
+          <div id="player-game-over-actions" class="game-over-actions hidden">
+            <p id="player-waiting-text" class="waiting-text">Waiting for host to set up next game...</p>
+            <button id="btn-player-exit" class="btn btn-outline btn-lg">🚪 Leave Room</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- MODAL: CUSTOM DECK MANAGER -->
+    <div id="modal-deck" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Custom Emoji Deck Manager</h3>
+          <button id="btn-close-deck" class="btn-close">×</button>
+        </div>
+        <div class="modal-body">
+          <!-- Add Puzzle Form -->
+          <form id="form-add-puzzle" class="add-puzzle-form">
+            <h4>Add New Puzzle</h4>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label>Emojis</label>
+                <input type="text" id="custom-emojis" class="input-field" placeholder="e.g. 🚢❄️💔" required />
+              </div>
+              <div class="form-group flex-1">
+                <label>Category</label>
+                <select id="custom-category" class="input-field select-field">
+                  <option value="movies">🎬 Movie</option>
+                  <option value="songs">🎵 Song</option>
+                  <option value="translations">🇬🇧➡️🇮🇳 Bollywood in English</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Correct Answer</label>
+              <input type="text" id="custom-answer" class="input-field" placeholder="e.g. Titanic" required />
+            </div>
+            <div class="form-group">
+              <label>Optional Hint</label>
+              <input type="text" id="custom-hint" class="input-field" placeholder="e.g. Jack and Rose romance" />
+            </div>
+            <button type="submit" class="btn btn-secondary btn-block">+ Add to Custom Deck</button>
+          </form>
+
+          <hr class="divider" />
+
+          <!-- Custom Items List -->
+          <div class="custom-items-section">
+            <div class="section-header">
+              <h4>Your Custom Items</h4>
+              <span id="deck-custom-count" class="badge">0 Items</span>
+            </div>
+            <div id="deck-custom-list" class="deck-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: HOW TO PLAY -->
+    <div id="modal-rules" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>How to Play "Decode It"</h3>
+          <button id="btn-close-rules" class="btn-close">×</button>
+        </div>
+        <div class="modal-body rules-body">
+          <div class="rule-step">
+            <div class="rule-num">1</div>
+            <div>
+              <strong>Join or Host</strong>
+              <p>The host creates a room and shares the link or QR code. Players join from their smartphones or computers.</p>
+            </div>
+          </div>
+          <div class="rule-step">
+            <div class="rule-num">2</div>
+            <div>
+              <strong>Decode the Emojis</strong>
+              <p>Each round displays emoji clues representing a Movie or Song (e.g. 🦁👑 = The Lion King).</p>
+            </div>
+          </div>
+          <div class="rule-step">
+            <div class="rule-num">3</div>
+            <div>
+              <strong>Use the Letter Blanks</strong>
+              <p>Word and letter patterns (e.g. <code>_ _ _  _ _</code>) show you how many words and characters are in the answer!</p>
+            </div>
+          </div>
+          <div class="rule-step">
+            <div class="rule-num">4</div>
+            <div>
+              <strong>Speed Matters!</strong>
+              <p>The 1st player to guess gets 100 points, 2nd gets 80 points, 3rd gets 60 points, plus speed bonuses for remaining time!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Container -->
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- MODAL: DRAWER MOVIE SELECTION (PICK 1 OF 3) -->
+    <div id="modal-movie-selection" class="modal-overlay hidden">
+      <div class="modal-card movie-select-card">
+        <div class="modal-header">
+          <h3>🎨 It's Your Turn to Draw!</h3>
+        </div>
+        <p class="movie-select-subtitle">Choose one Bollywood movie from the 3 choices below to draw for other players:</p>
+        <div id="movie-choices-grid" class="movie-choices-grid">
+          <!-- 3 cards generated dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- DRAWER CHOOSING OVERLAY FOR GUESSERS -->
+    <div id="drawer-choosing-overlay" class="drawer-choosing-overlay hidden">
+      <div class="choosing-box">
+        <div class="choosing-icon">🎨</div>
+        <h3 id="choosing-drawer-name">Drawer is choosing a movie...</h3>
+        <p>Get ready to guess their masterpiece!</p>
+      </div>
+    </div>
+
+    <!-- GUESSER SONG HINT PROMPT FOR MOBILE 1-TAP PLAYBACK -->
+    <div id="modal-song-hint-prompt" class="modal-overlay hidden">
+      <div class="modal-card" style="max-width: 360px; text-align: center; padding: 24px 20px;">
+        <div style="font-size: 3rem; margin-bottom: 8px;">🎵🎧</div>
+        <h3 style="margin-bottom: 8px;">Song Tune Hint Playing!</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+          The drawer has played an official 20-second Bollywood song track clue. Tap below to listen!
+        </p>
+        <button type="button" id="btn-listen-song-hint" class="btn btn-primary btn-lg" style="width: 100%; justify-content: center; font-size: 1.05rem;">
+          ▶️ Listen to Song Track 🔊
+        </button>
+        <p style="color: #fbbf24; font-size: 0.76rem; margin-top: 12px; margin-bottom: 0;">
+          💡 <em>iPhone users: Ensure the physical side switch is set to <strong>Ringer/Unmute</strong> (not Silent/Orange).</em>
+        </p>
+      </div>
+    </div>
+
+    <!-- MODAL: HOST AUTHENTICATION / PASSCODE -->
+    <div id="modal-host-auth" class="modal-overlay hidden">
+      <div class="modal-card" style="max-width: 380px;">
+        <div class="modal-header">
+          <h3 id="host-auth-title">🔐 Host Access Verification</h3>
+          <button type="button" id="btn-close-host-auth" class="btn-icon">✕</button>
+        </div>
+        <p id="host-auth-subtitle" class="card-subtitle" style="margin-bottom: 16px;">
+          Enter your secret Host Passcode / PIN to access host room controls.
+        </p>
+        <form id="form-host-auth">
+          <div class="form-group">
+            <label for="host-passcode-input">Host Passcode / PIN</label>
+            <input type="password" id="host-passcode-input" class="input-field" placeholder="Enter secret passcode" autofocus autocomplete="current-password" />
+          </div>
+          <div id="host-auth-error" style="color: #f87171; font-size: 0.85rem; margin-top: 6px;" class="hidden">❌ Incorrect passcode. Try again.</div>
+          <div style="display: flex; gap: 10px; margin-top: 18px;">
+            <button type="button" id="btn-cancel-host-auth" class="btn btn-secondary flex-1">Cancel</button>
+            <button type="submit" id="btn-submit-host-auth" class="btn btn-primary flex-1">Unlock 🔓</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Floating Debug HUD Button -->
+    <button type="button" id="btn-toggle-debug" class="btn-debug-floating" title="Open Debug Console">
+      🐞 Debug
+    </button>
+
+    <!-- Slide-up Live Debug Console Drawer -->
+    <div id="debug-console-drawer" class="debug-drawer hidden">
+      <div class="debug-header">
+        <h4>🛠️ Live Debug Console</h4>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="btn-test-sample-m4a" class="btn btn-sm btn-secondary">🎵 Test .m4a</button>
+          <button type="button" id="btn-clear-debug" class="btn btn-sm btn-secondary">Clear</button>
+          <button type="button" id="btn-close-debug" class="btn btn-sm btn-primary">✖️</button>
+        </div>
+      </div>
+      <pre id="debug-log-content" class="debug-body">Initializing logger...</pre>
+    </div>
+
+    <!-- Floating Live Group Call Controls Dock -->
+    <div id="call-controls-bar" class="call-controls-bar hidden">
+      <button type="button" id="btn-call-mic" class="btn-call-ctrl" title="Mute / Unmute Microphone">
+        <span id="call-mic-icon" class="ctrl-icon">🎙️</span>
+        <span id="call-mic-label" class="ctrl-label">Mute</span>
+      </button>
+      <button type="button" id="btn-call-cam" class="btn-call-ctrl" title="Turn Camera On / Off">
+        <span id="call-cam-icon" class="ctrl-icon">📹</span>
+        <span id="call-cam-label" class="ctrl-label">Stop Video</span>
+      </button>
+      <button type="button" id="btn-call-flip" class="btn-call-ctrl" title="Flip Front / Rear Camera">
+        <span class="ctrl-icon">🔄</span>
+        <span class="ctrl-label">Flip</span>
+      </button>
+      <button type="button" id="btn-call-collapse" class="btn-call-ctrl" title="Minimize / Expand Video Strip">
+        <span id="call-collapse-icon" class="ctrl-icon">👁️</span>
+        <span id="call-collapse-label" class="ctrl-label">Hide Video</span>
+      </button>
+    </div>
+
+    <!-- Persistent Global Audio Stream (Mobile Autoplay Compatible) -->
+    <audio id="global-audio-stream" playsinline="true" webkit-playsinline="true" preload="auto" style="position:fixed;top:-9999px;left:-9999px;opacity:0.001;pointer-events:none;"></audio>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="bundle.min.js"></script>
+</body>
+</html>
